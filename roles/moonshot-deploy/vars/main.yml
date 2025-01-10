@@ -1,0 +1,2 @@
+# Variable that defines the Docker image for Moonshot
+swap_image: henrique020/moonshot:moonshot

@@ -1,0 +1,9 @@
+---
+- name: Create JMeter Load Test
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - /inventory/gcp.yml  
+  roles:
+    - role: jmeter-load-test
+      tags: ["jmeter-load-test"]

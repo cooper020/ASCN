@@ -1,0 +1,60 @@
+# Deploy postgres
+- name: Create a PVC for postgres
+  kubernetes.core.k8s:
+    definition: "{{ lookup('template', 'postgres-pvc.yml') | from_yaml }}"
+    state: present
+    wait: true
+    wait_timeout: 300
+
+- name: Create a Deployment for postgres
+  kubernetes.core.k8s:
+    definition: "{{ lookup('template', 'postgres-deployment.yml') | from_yaml }}"
+    state: present
+    wait: true
+    wait_timeout: 300
+
+- name: Create a service for exposing postgres
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'postgres-service.yml') | from_yaml }}"
+    wait: true
+
+- name: Wait till postgres pod is created
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: default
+    label_selectors:
+      - app=postgres
+    wait: true
+    wait_sleep: 5
+    wait_timeout: 300
+  register: postgres_pod_info
+
+- name: Wait until PostgreSQL is ready to accept connections
+  kubernetes.core.k8s_exec:
+    namespace: default
+    pod: "{{ postgres_pod_info.resources[0].metadata.name }}"
+    command: >
+      psql -U dbuser -h localhost -d {{ dbname | default('postgres') }} -c "SELECT 1;"
+  register: postgres_login
+  retries: 3
+  delay: 10
+  until: postgres_login.rc == 0
+
+- name: Create the database if it doesn't exist
+  kubernetes.core.k8s_exec:
+    namespace: default
+    pod: "{{ postgres_pod_info.resources[0].metadata.name }}"
+    command: >
+      psql -U dbuser -h localhost -d postgres -c "CREATE DATABASE dbname;"
+  register: db_creation
+  failed_when: "'already exists' not in db_creation.stderr and db_creation.rc != 0"
+  ignore_errors: true  # Isso vai ignorar qualquer erro, mesmo que a base de dados já exista
+
+
+- name: Fetch logs from postgres pod (if needed)
+  kubernetes.core.k8s_log:
+    name: "{{ postgres_pod_info.resources[0].metadata.name }}"
+    namespace: default
+  register: postgres_logs
+  when: postgres_pod_info.resources | length > 0

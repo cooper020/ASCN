@@ -1,0 +1,59 @@
+---
+all:
+  vars:
+    # GKE cluster variables
+    gcp_project: {{ gcp_project }} # ID of GCP Project
+    gcp_auth_kind: serviceaccount # Do not change
+    gcp_cred_file: {{ gcp_cred_file }} # Path to service account keys (json file downloaded from >
+
+    gcp_zone: us-central1-a
+    gcp_image_type: ubuntu_containerd
+    gcp_machine_type: e2-small # Can be changed if necessary
+    gcp_disk_size_gb: 100 # Can be changed if necessary
+    gcp_initial_node_count: 2 # Number of nodes to create. Can be changed if necessary
+
+    # BEGIN Test variables (DO NOT CHANGE)
+    app_notifier_email: notifier@moonshot.pt
+    app_notifier_password: 123456
+    result_code: 200
+    dgc_uvci: 01-PT-REFA5AC08A0DAC004F180A2EC03C631E9291BF-7
+    # END Test variables (DO NOT CHANGE)
+
+    # APP variables
+    app_ip: 146.148.102.53 # Needs to be updated 
+    app_port: 8000 # Needs to be updated
+
+    # PostgreSQL variables
+    db_username: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          36633662616136613932353062343437613536363663333231343631656337626365326564636235
+          3436363234343231663862656135303964653333343639370a363630353439303363313837623262
+          32386330303665363464356162633264633337663965386535303164333265303636366264666537
+          6165376538383237310a313235643730626130336666383538613365333339303461623739303865
+          65313339613835633732653864323132373637353062343365613036626630326534
+    db_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          35336334363738633165306364326635383039366135623630383331663735636236336161643363
+          3361663439653533386639656664313835316434316562340a613337386161393831396261396163
+          31336530613765336362393238653937383663636164653935623061316238633430626662356233
+          6635623434333762370a633436643831613536386239396134666162633939393763383730666132
+          32666237303136386537343830623865383963366435323464653261343738363366
+    db_name: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          35343738646638393763663534613438316330313538343763323561313864363033643664396230
+          6463323935333563623334366463353737613866623662620a373233393830386262613766343465
+          31636462336432623461623135633433636161316163363465623736623065303332353533316132
+          3137313365623665650a646561346336333561383435356531336237663533326537366565373435
+          3733
+    pvc_name: "{{ pvc_name }}"  # PVC name for PostgreSQL data storage
+    db_host: "{{ db_host }}"  # Service name for PostgreSQL
+    db_image: "{{ db_image }}"  # Image for PostgreSQL container (can be customized)
+    db_storage_size: "{{ db_storage_size }}"  # PVC storage size
+
+
+    # Additional variables
+    # ...
+
+    # Seed database flag
+    seed_database: false
+    delete_data: false

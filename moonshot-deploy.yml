@@ -1,0 +1,12 @@
+---
+# Playbook to deploy Moonshot and its components
+- name: "postgres & moonshot"
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - /inventory/gcp.yml  
+  roles:
+    - role: postgres-deploy
+      tags: ["postgres-deploy"]
+    - role: moonshot-deploy
+      tags: ["moonshot-deploy"]  

@@ -1,0 +1,27 @@
+---
+# Undeploy postgres
+- name: Delete postgres deployment
+  kubernetes.core.k8s:
+    state: absent
+    kind: Deployment
+    name: postgres-deployment
+    namespace: default
+
+- name: Delete postgres service
+  kubernetes.core.k8s:
+    state: absent
+    kind: Service
+    name: postgres-service
+    namespace: default
+     
+- name: Delete Persistent Volume Claim (PVC)
+  kubernetes.core.k8s:
+    state: absent
+    kind: PersistentVolumeClaim
+    name: postgres-pvc
+    namespace: default
+  when: delete_data | bool 
+
+
+
+

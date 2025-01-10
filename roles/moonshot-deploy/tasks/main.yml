@@ -1,0 +1,78 @@
+# Deploy Moonshot
+- name: Map seed_database to seed_db
+  set_fact:
+    seed_db: "{{ seed_database | default(false) }}"
+
+- name: Create a Deployment for moonshot
+  kubernetes.core.k8s:
+    definition: "{{ lookup('template', 'moonshot-deployment.yml') | from_yaml }}"
+    state: present
+    wait: true
+
+- name: Create a service for exposing moonshot
+  kubernetes.core.k8s:
+    definition: "{{ lookup('template', 'moonshot-service.yml') | from_yaml }}"
+    state: present
+    wait: true
+
+- name: Wait till moonshot pod is created
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: default
+    label_selectors:
+      - app=moonshot
+    wait: true
+    wait_sleep: 5
+    wait_timeout: 180
+  register: moonshot_pod_info
+
+- name: Wait for Moonshot pod to be created and ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: default
+    label_selectors:
+      - app=moonshot
+  register: moonshot_pod_info
+  retries: 10
+  delay: 30
+  until: >
+    moonshot_pod_info.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0
+
+- name: Seed the database
+  kubernetes.core.k8s_exec:
+    namespace: default
+    pod: "{{ moonshot_pod_info.resources[0].metadata.name }}"
+    command: python seed.py
+  when: seed_db
+
+- name: Wait for Load Balance IP
+  kubernetes.core.k8s_info:
+    kind: Service
+    name: moonshot-service  
+    namespace: default
+  register: svc_info
+  until: svc_info.resources[0].status.loadBalancer.ingress[0].ip is defined
+  retries: 15  
+  delay: 10
+  failed_when: svc_info.resources | length == 0  
+
+- name: Update IP
+  set_fact:
+    app_ip: "{{ svc_info.resources[0].status.loadBalancer.ingress[0].ip }}"
+
+- name: Swap placeholder and Load Balancer IP
+  replace:
+    dest: inventory/gcp.yml
+    regexp: '\d+\.\d+\.\d+\.\d+'
+    replace: "{{ svc_info.resources[0].status.loadBalancer.ingress[0].ip }}"
+
+# Condicionalmente aplicar o HPA, caso a flag 'hpa' seja verdadeira
+- name: Deploy the Moonshot HPA (Horizontal Pod Autoscaler)
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'moonshot-hpa.yml') }}"
+    wait: yes
+    wait_timeout: 300
+  when: hpa | default(false)
+  tags: ['hpa']
+

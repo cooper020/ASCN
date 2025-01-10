@@ -1,0 +1,62 @@
+- name: Check if Java is installed
+  command: java -version
+  register: java_check
+  ignore_errors: yes
+
+- name: Install Java if not installed
+  apt:
+    name: openjdk-11-jdk
+    state: present
+    update_cache: yes
+  when: java_check.rc != 0
+
+- name: Ensure directory exists for JMeter test plan
+  file:
+    path: /opt/apache-jmeter
+    state: directory
+    mode: '0755'
+  become: yes     
+
+- name: Copy the JMeter test plan to the local directory
+  copy:
+    src: "../../../testing-jmeter/load_test.jmx"
+    dest: "/opt/apache-jmeter/load_test.jmx"
+  become: yes     
+
+- name: Update domain in JMeter test plan
+  replace:
+    path: "/opt/apache-jmeter/load_test.jmx"
+    regexp: "<stringProp name=\"HTTPSampler.domain\">.*?</stringProp>"
+    replace: "<stringProp name=\"HTTPSampler.domain\">{{ jmeter_domain }}</stringProp>"
+  become: yes    
+
+- name: Update number of threads in JMeter test plan
+  replace:
+    path: "/opt/apache-jmeter/load_test.jmx"
+    regexp: "<intProp name=\"ThreadGroup.num_threads\">.*?</intProp>"
+    replace: "<intProp name=\"ThreadGroup.num_threads\">{{ threads }}</intProp>"
+  become: yes    
+
+- name: Update ramp time (delay between threads) in JMeter test plan
+  replace:
+    path: "/opt/apache-jmeter/load_test.jmx"
+    regexp: "<intProp name=\"ThreadGroup.ramp_time\">.*?</intProp>"
+    replace: "<intProp name=\"ThreadGroup.ramp_time\">{{ ramp_time }}</intProp>"
+  become: yes    
+
+- name: Update number of iterations in JMeter test plan
+  replace:
+    path: "/opt/apache-jmeter/load_test.jmx"
+    regexp: "<intProp name=\"LoopController.loops\">.*?</intProp>"
+    replace: "<intProp name=\"LoopController.loops\">{{ iterations }}</intProp>"
+  become: yes
+
+- name: Execute JMeter test plan
+  shell: |
+    /opt/apache-jmeter/apache-jmeter-5.6.3/bin/jmeter -n -t /opt/apache-jmeter/load_test.jmx -l /home/vagrant/GrupoTP-08/testing-jmeter/results/results.jtl -j /home/vagrant/GrupoTP-08/testing-jmeter/logs/jmeter.log
+
+- name: Clean up JMeter binary archive
+  file:
+    path: /opt/apache-jmeter/apache-jmeter-5.6.3.tgz
+    state: absent
+  become: yes  

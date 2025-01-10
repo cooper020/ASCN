@@ -1,0 +1,9 @@
+---
+- name: Monitoring mooshot
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - /inventory/gcp.yml  
+  roles:
+    - role: monitoring
+      tags: ["monitoring"]

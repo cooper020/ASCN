@@ -1,0 +1,6 @@
+--- 
+jmeter_path: /opt/apache-jmeter-5.6.3/bin/jmeter
+threads: "{{ threads | default(20) }}"  # Número de threads (default: 20)
+ramp_time: "{{ ramp_time | default(1) }}"  # Tempo de ramp-up entre threads (default: 1 segundo)
+iterations: "{{ iterations | default(15) }}"
+jmeter_domain: "{{ app_ip }}"  # Domínio (IP do app) do inventário
